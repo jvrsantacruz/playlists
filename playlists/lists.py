@@ -17,7 +17,7 @@ class PIterable(object):
         return klass(self.path)
 
 
-class Xspf(PIterable):
+class Xspf(object):
     "Iterate over a XSPF playlist file."
 
     ns = "http://xspf.org/ns/0/"
@@ -26,20 +26,13 @@ class Xspf(PIterable):
         super(Xspf, self).__init__(path)
         self.root = objectify.parse(path).getroot()
         self.list = self.root.trackList.track[:]
-        self.index = 0
 
-    def next(self):
-        "Returns title, absolute_path for every item on the list"
-        if self.index == len(self.list):
-            raise StopIteration
-
-        # get title and remove initial file:///
-        title = self.list[self.index].title.text.encode('utf-8')
-        path = self.list[self.index].location.text.encode('utf-8')[7:]
-
-        self.index += 1  # next track
-
-        return title, path
+    def __iter__(self):
+        "Yields title, absolute_path for every item on the list"
+        for item in self.list:
+            title = item.title.text.encode('utf-8')
+            path = item.location.text.encode('utf-8')[7:]  # remove 'file:///'
+            yield title, path
 
 
 class M3u(PIterable):
