@@ -9,80 +9,9 @@ Javier Santacruz 04/06/2011
 import os
 import shutil
 import random
-from lxml import objectify
 from optparse import OptionParser
 
-
-class PIterable(object):
-    "Base class for iterable playlists"
-
-    def __init__(self, path):
-        "Base constructor, sets self.path"
-        self.path = path
-
-    def __iter__(self):
-        "Returns a new object to iterate with it"
-        klass = type(self)
-        return klass(self.path)
-
-
-class Xspf(PIterable):
-    "Iterate over a XSPF playlist file."
-
-    ns = "http://xspf.org/ns/0/"
-
-    def __init__(self, path):
-        super(Xspf, self).__init__(path)
-        self.root = objectify.parse(path).getroot()
-        self.list = self.root.trackList.track[:]
-        self.index = 0
-
-    def next(self):
-        "Returns title, absolute_path for every item on the list"
-        if self.index == len(self.list):
-            raise StopIteration
-
-        # get title and remove initial file:///
-        title = self.list[self.index].title.text.encode('utf-8')
-        path = self.list[self.index].location.text.encode('utf-8')[7:]
-
-        self.index += 1  # next track
-
-        return title, path
-
-
-class M3u(PIterable):
-    "Iterate over a M3U playlist file."
-
-    ns = "#EXTM3U"
-
-    def __init__(self, path):
-        super(M3u, self).__init__(path)
-        self.base_path = os.path.dirname(self.path)
-        self.file = open(self.path, "r")
-
-    def next(self):
-        """Returns title, absolute_path for every item on the playlist.
-
-        M3u objects have the following structure:
-
-        #EXTM3U
-        #EXTINF:342,Author - Song Title
-        ../Music/song.mp3
-        """
-
-        # Find a #EXTINF line and a path line
-        line, line_prev = '#', ''
-        while line.startswith('#'):
-            line_prev = line
-            line = self.file.readline()
-            if not line:
-                raise StopIteration
-
-        title = line_prev.split(',', 1)[1]  # get title
-        path = os.path.join(self.base_path, line)[0:-1]
-
-        return title, path
+from lists import Xspf, M3u
 
 
 def detect_format(path):
@@ -167,12 +96,12 @@ def delete_files(expected_names, remote_dir):
         try:
             os.remove(fpath)
         except OSError, err:
-            print "Error: Couldn't remove {0} from {1}: {2}"\
-                    .format(os.path.basename(fpath), remote_dir, err)
+            print ("Error: Couldn't remove {0} from {1}: {2}"
+                   .format(os.path.basename(fpath), remote_dir, err))
         else:
             deleted += 1
-            print "Removed {0}/{1}: {2}"\
-                    .format(deleted, len(delete_list), fpath)
+            print ("Removed {0}/{1}: {2}"
+                   .format(deleted, len(delete_list), fpath))
 
     return deleted
 
@@ -182,9 +111,9 @@ def link(from_path, to_path):
     try:
         os.link(from_path, to_path)
     except OSError, err:
-        print "Error: Couldn't link {0} from {1} to {2}: {3}"\
+        print ("Error: Couldn't link {0} from {1} to {2}: {3}"
                .format(os.path.basename(from_path), os.path.dirname(from_path),
-                       to_path, err)
+                       to_path, err))
         return False
     else:
         return True
@@ -195,14 +124,14 @@ def copy(from_path, to_path):
     try:
         shutil.copy(from_path, to_path)
     except shutil.Error, err:
-        print "Error: Couldn't copy {0} from {1} to {2}: {3}"\
-                .format(os.path.basename(from_path),
-                        os.path.dirname(from_path), to_path, err)
+        print ("Error: Couldn't copy {0} from {1} to {2}: {3}"
+               .format(os.path.basename(from_path),
+                       os.path.dirname(from_path), to_path, err))
         return False
     except IOError, err:
-        print "Error: Couldn't copy {0} from {1} to {2}: {3}"\
-        .format(os.path.basename(from_path), os.path.dirname(from_path),
-                to_path, err)
+        print ("Error: Couldn't copy {0} from {1} to {2}: {3}"
+               .format(os.path.basename(from_path), os.path.dirname(from_path),
+                       to_path, err))
         return False
 
     return True
@@ -246,7 +175,7 @@ def sync_dirs(local_files, remote_dir, opts):
 
         cdsize = 700 * 1024 * 1024  # in bytes
         while total_size > cdsize:
-            size,f = weighted_files.pop()
+            size, f = weighted_files.pop()
             print "Ommiting {0} to fit CD size".format(f)
             local_files.remove(f)
             total_size -= size
@@ -270,15 +199,15 @@ def sync_dirs(local_files, remote_dir, opts):
     # Warn about already present files which are being skipped
     if not opts.force:
         for f in set(remote_names).intersection(set(expected_names)):
-            print "Skipping {0} which is already in {1}"\
-                    .format(os.path.basename(f), remote_dir)
+            print ("Skipping {0} which is already in {1}"
+                   .format(os.path.basename(f), remote_dir))
 
     # Copy/Link files to remote directory
     copied = send_files(copy_files, expected_names, remote_dir, opts.link)
     action = "Linking" if opts.link else "Copying"
 
-    print "{0} complete: {1} files copied, {2} files removed"\
-            .format(action, copied, deleted)
+    print ("{0} complete: {1} files copied, {2} files removed"
+           .format(action, copied, deleted))
 
 
 def main():
@@ -294,13 +223,13 @@ def main():
         try:
             os.mkdir(remote_dir)
         except OSError:
-            print "Error: {0} doesn't exists and couldn't be created."\
-                .format(remote_dir)
+            print ("Error: {0} doesn't exists and couldn't be created."
+                   .format(remote_dir))
             exit()
 
     if not os.path.isdir(remote_dir):
-        print "Error: {0} doesn't exists or is not a directory."\
-                .format(remote_dir)
+        print ("Error: {0} doesn't exists or is not a directory."
+               .format(remote_dir))
         exit()
 
     playlist = get_playlist(pl_path, options.format)
@@ -356,8 +285,8 @@ if __name__ == "__main__":
 
     # Check arguments
     errors = (("Error: Missing playlist and directory paths."),
-               ("Error: Missing directory paths."),
-               ("Error: Too many arguments."))
+              ("Error: Missing directory paths."),
+              ("Error: Too many arguments."))
 
     if len(args) != 2:
         print errors[len(args) if len(args) < 3 else 2]
@@ -369,8 +298,8 @@ if __name__ == "__main__":
         options.shuffle = True
 
     if not os.path.isfile(args[0]):
-        print "Error: playlist doesn't exist or isn't a file: {0}. Exiting."\
-                .format(args[0])
+        print ("Error: playlist doesn't exist or isn't a file: {0}. Exiting."
+               .format(args[0]))
         exit(1)
 
     main()
