@@ -1,7 +1,8 @@
 #-*- coding: utf-8 -*-
 
 import os
-from lxml import objectify
+
+from xml.etree.ElementTree import iterparse, ParseError
 
 
 class PIterable(object):
@@ -17,22 +18,56 @@ class PIterable(object):
         return klass(self.path)
 
 
+class PlaylistError(Exception):
+    pass
+
+
+class XspfError(Exception):
+    pass
+
+
 class Xspf(object):
     "Iterate over a XSPF playlist file."
 
     ns = "http://xspf.org/ns/0/"
 
-    def __init__(self, path):
-        super(Xspf, self).__init__(path)
-        self.root = objectify.parse(path).getroot()
-        self.list = self.root.trackList.track[:]
+    def __init__(self, source):
+        self.source = source
 
     def __iter__(self):
+        return self.parse(self.source)
+
+    @classmethod
+    def parse(cls, source):
         "Yields title, absolute_path for every item on the list"
-        for item in self.list:
-            title = item.title.text.encode('utf-8')
-            path = item.location.text.encode('utf-8')[7:]  # remove 'file:///'
-            yield title, path
+        document = iterparse(source, events=('start', 'end'))
+
+        try:
+            title, location = None, None
+            root = cls.get_root(document)
+            end_events = (el for event, el in document if event == 'end')
+
+            for element in end_events:
+                if element.tag.endswith('title'):
+                    title = element.text
+
+                elif element.tag.endswith('location'):
+                    location = element.text[7:]
+
+                if element.tag.endswith('track'):
+                    yield title, location
+
+                    # Clean after reading a track
+                    title, location = None, None
+                    root.clear()
+
+        except ParseError as error:
+            raise XspfError(error)
+
+    @staticmethod
+    def get_root(document):
+        for event, element in document:
+            return element
 
 
 class M3u(PIterable):
