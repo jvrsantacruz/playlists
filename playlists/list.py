@@ -29,25 +29,24 @@ def detect_format(source):
             return name
 
 
-def get_playlist(path, pformat=None):
+def get_playlist(path, format_name=None):
     """Returns a Playlist object of the given format.
     "if pformat is not specified or None, format will be auto detected
     """
     source = open(path, 'r')
 
-    if pformat is None:
-        pformat = detect_format(source)
+    if format_name is None:
+        format_name = detect_format(source)
 
-    if pformat is None:
+    if format_name is None:
         print(u"Error: Couldn't autodetect format for playlist.")
         exit(1)
 
-    if pformat not in FORMATS.keys():
-        print(u"Error: Unkown '{}' playlist format.".format(options.format))
+    if format_name not in FORMATS.keys():
+        print(u"Error: Unkown '{}' playlist format.".format(format_name))
         exit(1)
 
-    # Create playlist and sync directory
-    return FORMATS[pformat](path)
+    return FORMATS[format_name](source)
 
 
 def prefix_name(number, name, total):
@@ -57,23 +56,18 @@ def prefix_name(number, name, total):
     >>> prefix_name(15, 'filename', 1)
     '15_filename'
     """
-    return "{0}_{1}".format(str(number).zfill(len(str(total))), name)
+    return u"{num}_{name}".format(
+        num=str(number).zfill(len(str(total))), name=name)
 
 
 def get_expected_names(local_files):
     "Returns the filenames expected to be on remote"
-    if not options.numbered:
-        return local_files
-
     return [prefix_name(i + 1, name, len(local_files))
             for i, name in enumerate(local_files)]
 
 
 def get_copy_names(local_files, expected_names, remote_names):
     "Returns the files to be copied"
-    if options.force:
-        return local_files  # copy all of them
-
     return [name for i, name in enumerate(local_files)
             if expected_names[i] not in remote_names]
 
@@ -189,8 +183,8 @@ def sync_dirs(local_files, remote_dir, opts):
         random.shuffle(local_files)
 
     local_names = [os.path.basename(f) for f in local_files]  # local names
-    expected_names = get_expected_names(local_names)  # what sould be in remote
-    remote_names = os.listdir(remote_dir)             # what is in remote
+    expected_names = local_names if opts.numbered else get_expected_names(local_names)  # what sould be in remote
+    remote_names = os.listdir(remote_dir)  # what is in remote
 
     # Remove undesired files
     deleted = 0
@@ -198,7 +192,7 @@ def sync_dirs(local_files, remote_dir, opts):
         deleted = delete_files(expected_names, remote_dir)
 
     # Paths to be copied to remote
-    copy_files = get_copy_names(local_files, expected_names, remote_names)
+    copy_files = local_files if opts.force else get_copy_names(local_files, expected_names, remote_names)
 
     # Warn about already present files which are being skipped
     if not opts.force:
@@ -214,7 +208,7 @@ def sync_dirs(local_files, remote_dir, opts):
           .format(action, copied, deleted))
 
 
-def main():
+def main(options, args, parser):
 
     pl_path = args[0]
     remote_dir = args[1]
@@ -242,10 +236,32 @@ def main():
     sync_dirs(files, remote_dir, options)
 
 
-if __name__ == "__main__":
+def check_arguments(options, args, parser):
+    # Check arguments
+    errors = (("Error: Missing playlist and directory paths."),
+              ("Error: Missing directory paths."),
+              ("Error: Too many arguments."))
 
-    # Read options
+    if len(args) != 2:
+        print(errors[len(args) if len(args) < 3 else 2])
+        print(parser.print_help())
+        exit(1)
+
+    if options.mix:
+        options.numbered = True
+        options.shuffle = True
+
+    if not os.path.isfile(args[0]):
+        print("Error: playlist doesn't exist or isn't a file: {}. Exiting."
+              .format(args[0]))
+        exit(1)
+
+    return options, args, parser
+
+
+def parse_arguments():
     parser = OptionParser()
+
     parser.add_option("-d", "--delete", dest="delete",
                       action="store_true", default=False,
                       help="Delete files which are not in the playlist.")
@@ -285,25 +301,10 @@ if __name__ == "__main__":
 
     parser.set_usage("Usage: [options] playlist directory")
 
-    (options, args) = parser.parse_args()
+    options, args = parser.parse_args()
 
-    # Check arguments
-    errors = (("Error: Missing playlist and directory paths."),
-              ("Error: Missing directory paths."),
-              ("Error: Too many arguments."))
+    return options, args, parser
 
-    if len(args) != 2:
-        print errors[len(args) if len(args) < 3 else 2]
-        print parser.print_help()
-        exit(1)
 
-    if options.mix:
-        options.numbered = True
-        options.shuffle = True
-
-    if not os.path.isfile(args[0]):
-        print("Error: playlist doesn't exist or isn't a file: {}. Exiting."
-              .format(args[0]))
-        exit(1)
-
-    main()
+if __name__ == "__main__":
+    main(*check_arguments(*parse_arguments()))
