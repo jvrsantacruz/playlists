@@ -243,7 +243,7 @@ def check_arguments(options, args, parser):
               ("Error: Too many arguments."))
 
     if len(args) != 2:
-        print(errors[len(args) if len(args) < 3 else 2])
+        print(errors[len(args) if len(args) < 3 else 2] + u'\n')
         print(parser.print_help())
         exit(1)
 
