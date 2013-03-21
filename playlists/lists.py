@@ -1,29 +1,6 @@
 #-*- coding: utf-8 -*-
 
-import os
-
 from xml.etree.ElementTree import iterparse, ParseError
-
-
-class PIterable(object):
-    "Base class for iterable playlists"
-
-    def __init__(self, path):
-        "Base constructor, sets self.path"
-        self.path = path
-
-    def __iter__(self):
-        "Returns a new object to iterate with it"
-        klass = type(self)
-        return klass(self.path)
-
-
-class PlaylistError(Exception):
-    pass
-
-
-class XspfError(Exception):
-    pass
 
 
 class Xspf(object):
@@ -85,35 +62,53 @@ class Xspf(object):
             raise XspfError(error)
 
 
-class M3u(PIterable):
+class M3u(object):
     "Iterate over a M3U playlist file."
 
     ns = "#EXTM3U"
 
-    def __init__(self, path):
-        super(M3u, self).__init__(path)
-        self.base_path = os.path.dirname(self.path)
-        self.file = open(self.path, "r")
+    def __init__(self, source):
+        self.source = source
 
-    def next(self):
-        """Returns title, absolute_path for every item on the playlist.
+    @staticmethod
+    def parse(source):
+        """Yields title, absolute_path for every item on the playlist.
 
-        M3u objects have the following structure:
+        M3u files have the following structure:
 
         #EXTM3U
         #EXTINF:342,Author - Song Title
         ../Music/song.mp3
         """
+        content_lines = (line for line in source if line)
 
-        # Find a #EXTINF line and a path line
-        line, line_prev = '#', ''
-        while line.startswith('#'):
-            line_prev = line
-            line = self.file.readline()
-            if not line:
-                raise StopIteration
+        def get_first_line(source):
+            for line in content_lines:
+                return line
 
-        title = line_prev.split(',', 1)[1]  # get title
-        path = os.path.join(self.base_path, line)[0:-1]
+        first_line = get_first_line(source)
+        if not first_line or not first_line.startswith('#EXTM3U'):
+            raise M3uError(u'playlist does not start with #EXTM3U')
 
-        return title, path
+        title, path = None, None
+        for line in content_lines:
+            if line.startswith('#EXTINF'):
+                title = line.split(',', 1)[1][:-1]  # remove zn
+            else:
+                path = line[:-1]  # remove \n
+
+            if title and path:
+                yield title, path
+                title, path = None, None  # clean after reading a track
+
+
+class PlaylistError(Exception):
+    pass
+
+
+class XspfError(Exception):
+    pass
+
+
+class M3uError(Exception):
+    pass
