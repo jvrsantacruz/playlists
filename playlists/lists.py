@@ -37,14 +37,18 @@ class Xspf(object):
     def __iter__(self):
         return self.parse(self.source)
 
-    @classmethod
-    def parse(cls, source):
+    @staticmethod
+    def parse(source):
         "Yields title, absolute_path for every item on the list"
         document = iterparse(source, events=('start', 'end'))
 
+        def get_root(document):
+            for event, element in document:
+                return element
+
         try:
             title, location = None, None
-            root = cls.get_root(document)
+            root = get_root(document)
             end_events = (el for event, el in document if event == 'end')
 
             for element in end_events:
@@ -63,11 +67,6 @@ class Xspf(object):
 
         except ParseError as error:
             raise XspfError(error)
-
-    @staticmethod
-    def get_root(document):
-        for event, element in document:
-            return element
 
 
 class M3u(PIterable):
