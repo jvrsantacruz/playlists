@@ -39,7 +39,23 @@ class Xspf(object):
 
     @staticmethod
     def parse(source):
-        "Yields title, absolute_path for every item on the list"
+        """Yields title, absolute_path for every item on the list
+
+        xspf documents have the following structure:
+
+    <?xml version="1.0" encoding="UTF-8"?>
+    <playlist version="1" xmlns="http://xspf.org/ns/0/">
+    <trackList>
+    </trackList>
+        <track>
+        <title>Braintrust</title>
+        <creator>Hot Snakes</creator>
+        <album>Thunder Down Under</album>
+        <duration>114000</duration>
+        <location>file:///music/Hot_Snakes-Thunder_Down_Under-2006/01-hot_snakes-braintrust.mp3</location>
+        </track>
+    </playlist>
+        """
         document = iterparse(source, events=('start', 'end'))
 
         def get_root(document):
