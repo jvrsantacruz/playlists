@@ -50,9 +50,29 @@ MISSING_TITLE_PL = """<?xml version="1.0" encoding="UTF-8"?>
   </playlist>
 """
 
+SEVERAL_TRACKS_PL = """<?xml version="1.0" encoding="UTF-8"?>
+<playlist version="1" xmlns="http://xspf.org/ns/0/">
+  <trackList>
+  </trackList>
+    <track>
+      <title>Braintrust</title>
+      <creator>Hot Snakes</creator>
+      <album>Thunder Down Under</album>
+      <duration>114000</duration>
+      <location>file:///music/Hot_Snakes-Thunder_Down_Under-2006/01-hot_snakes-braintrust.mp3</location>
+    </track>
+    <track>
+      <title>Braintrust</title>
+      <creator>Hot Snakes</creator>
+      <album>Thunder Down Under</album>
+      <duration>114000</duration>
+      <location>file:///music/Hot_Snakes-Thunder_Down_Under-2006/01-hot_snakes-braintrust.mp3</location>
+    </track>
+  </playlist>
+"""
+
 
 class TestXspf(object):
-
     def test_ns_attribute_is_set(self):
         assert_that(Xspf.ns, is_not(none()))
 
@@ -91,3 +111,8 @@ class TestXspf(object):
         track = list(playlist)[0]
 
         assert_that(track[0], is_(none()))
+
+    def test_parse_parses_more_than_one_track(self):
+        playlist = Xspf.parse(StringIO(SEVERAL_TRACKS_PL))
+
+        assert_that(playlist, has_len(2))
