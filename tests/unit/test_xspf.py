@@ -6,7 +6,7 @@ except ImportError:
     from io import StringIO
 
 from hamcrest import *
-from matchers import empty, has_len, assert_that_raises
+from matchers import *
 
 from playlists.lists import Xspf, XspfError
 
@@ -82,6 +82,11 @@ class TestXspf(object):
     def test_parse_raises_parse_error_on_empty_documents(self):
         with assert_that_raises(XspfError):
             list(Xspf.parse(StringIO()))
+
+    def test_xspf_is_iterable(self):
+        playlist = Xspf(StringIO(EMPTY_PL))
+
+        assert_that(playlist, is_(iterable()))
 
     def test_parse_takes_empty_playlists(self):
         playlist = Xspf.parse(StringIO(EMPTY_PL))

@@ -6,7 +6,7 @@ except ImportError:
     from io import StringIO
 
 from hamcrest import *
-from matchers import empty, has_len, assert_that_raises
+from matchers import *
 
 from playlists.lists import M3u, M3uError
 
@@ -43,6 +43,11 @@ class TestM3u(object):
     def test_parse_raises_parse_error_on_wrong_headers(self):
         with assert_that_raises(M3uError):
             list(M3u.parse(StringIO('foo')))
+
+    def test_playlist_is_iterable(self):
+        playlist = M3u(StringIO(EMPTY_PL))
+
+        assert_that(playlist, is_(iterable()))
 
     def test_parse_takes_empty_playlists(self):
         playlist = M3u.parse(StringIO(EMPTY_PL))
