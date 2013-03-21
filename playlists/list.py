@@ -267,42 +267,33 @@ def check_arguments(options, args, parser):
 def parse_arguments():
     parser = OptionParser()
 
-    parser.add_option("-d", "--delete", dest="delete",
-                      action="store_true", default=False,
+    parser.add_option("-d", "--delete", action="store_true", default=False,
                       help="Delete files which are not in the playlist.")
 
-    parser.add_option("-f", "--force", dest="force",
-                      action="store_true", default=False,
+    parser.add_option("-f", "--force", action="store_true", default=False,
                       help="Force copy. Doesn't skip already existing files.")
 
-    parser.add_option("-l", "--link", dest="link",
-                      action="store_true", default=False,
+    parser.add_option("-l", "--link", action="store_true", default=False,
                       help="Hard linking instead of copying files.")
 
-    parser.add_option("-c", "--nocreate", dest="nocreate",
-                      action="store_true", default=False,
+    parser.add_option("-c", "--nocreate", action="store_true", default=False,
                       help="Doesn't create remote directory if doesn't exists"
                       " already")
 
-    parser.add_option("-s", "--shuffle", dest="shuffle",
-                      action="store_true", default=False,
+    parser.add_option("-s", "--shuffle", action="store_true", default=False,
                       help="Process files in a random order. Useful with"
                       " --numbered.")
 
-    parser.add_option("-n", "--numbered", dest="numbered",
-                      action="store_true", default=False,
+    parser.add_option("-n", "--numbered", action="store_true", default=False,
                       help="Rename files using positional indicator i_name")
 
-    parser.add_option("-m", "--mix", dest="mix",
-                      action="store_true", default=False,
+    parser.add_option("-m", "--mix", action="store_true", default=False,
                       help="Like --shuffle --numbered")
 
-    parser.add_option("-7", "--cd", dest="cd",
-                      action="store_true", default=False,
+    parser.add_option("-7", "--cd", action="store_true", default=False,
                       help="Limits the list size to 700MiB")
 
-    parser.add_option("-t", "--format", dest="format",
-                      action="store", default=None,
+    parser.add_option("-t", "--format", action="store", default=None,
                       help="Select format (m3u|xspf). Autodetects by default.")
 
     parser.set_usage("Usage: [options] playlist directory")
