@@ -14,43 +14,40 @@ from optparse import OptionParser
 from lists import Xspf, M3u
 
 
-def detect_format(path):
+FORMATS = {"m3u": M3u, "xspf": Xspf}
+
+
+def detect_format(source):
     """Autodetects the format of a playlist file
     returns (m3u|xspf) or None if unkown
     """
+    header = source.readline(200)
+    source.seek(0)  # reset source
 
-    lfile = open(path, "r")
-    header = lfile.readline(200)
-    lfile.close()
-
-    if M3u.ns in header:
-        return "m3u"
-    elif Xspf.ns in header:
-        return "xspf"
-
-    return None
-
-
-_FORMATS_ = {"m3u": M3u, "xspf": Xspf}
+    for name, cls in FORMATS:
+        if cls.ns in header:
+            return name
 
 
 def get_playlist(path, pformat=None):
     """Returns a Playlist object of the given format.
     "if pformat is not specified or None, format will be auto detected
     """
-    if pformat is None:
-        pformat = detect_format(path)
+    source = open(path, 'r')
 
     if pformat is None:
-        print "Error: Couldn't autodetect format for playlist."
-        exit()
+        pformat = detect_format(source)
 
-    if pformat not in _FORMATS_.keys():
-        print "Error: Unkown '{0}' playlist format." .format(options.format)
-        exit()
+    if pformat is None:
+        print(u"Error: Couldn't autodetect format for playlist.")
+        exit(1)
+
+    if pformat not in FORMATS.keys():
+        print(u"Error: Unkown '{}' playlist format.".format(options.format))
+        exit(1)
 
     # Create playlist and sync directory
-    return _FORMATS_[pformat](path)
+    return FORMATS[pformat](path)
 
 
 def prefix_name(number, name, total):
@@ -68,8 +65,8 @@ def get_expected_names(local_files):
     if not options.numbered:
         return local_files
 
-    return [prefix_name(i + 1, f, len(local_files))
-            for i, f in enumerate(local_files)]
+    return [prefix_name(i + 1, name, len(local_files))
+            for i, name in enumerate(local_files)]
 
 
 def get_copy_names(local_files, expected_names, remote_names):
@@ -77,7 +74,7 @@ def get_copy_names(local_files, expected_names, remote_names):
     if options.force:
         return local_files  # copy all of them
 
-    return [f for i, f in enumerate(local_files)
+    return [name for i, name in enumerate(local_files)
             if expected_names[i] not in remote_names]
 
 
@@ -85,23 +82,22 @@ def delete_files(expected_names, remote_dir):
     """Deletes files in remote which aren't expected to be there
     Returns the name of files effectively deleted
     """
-    delete_list = [os.path.join(remote_dir, f)
-                   for f in os.listdir(remote_dir)
-                   if f not in expected_names]
+    delete_list = [os.path.join(remote_dir, name)
+                   for name in os.listdir(remote_dir)
+                   if name not in expected_names]
 
-    print "Removing {0} files from {1}".format(len(delete_list), remote_dir)
+    print(u"Removing {} files from '{}'".format(len(delete_list), remote_dir))
 
     deleted = 0
     for fpath in delete_list:
         try:
             os.remove(fpath)
-        except OSError, err:
-            print ("Error: Couldn't remove {0} from {1}: {2}"
-                   .format(os.path.basename(fpath), remote_dir, err))
+        except OSError as err:
+            print(u"Error: Couldn't remove '{}' from '{}': {}"
+                  .format(os.path.basename(fpath), remote_dir, err))
         else:
             deleted += 1
-            print ("Removed {0}/{1}: {2}"
-                   .format(deleted, len(delete_list), fpath))
+            print(u"Removed {}/{}: {}".format(deleted, len(delete_list), fpath))
 
     return deleted
 
@@ -110,10 +106,12 @@ def link(from_path, to_path):
     "Wrapper around os.link. Returns True/False on success/failure"
     try:
         os.link(from_path, to_path)
-    except OSError, err:
-        print ("Error: Couldn't link {0} from {1} to {2}: {3}"
-               .format(os.path.basename(from_path), os.path.dirname(from_path),
-                       to_path, err))
+    except OSError as err:
+        print(u"Error: Couldn't link '{}' from '{}' to '{}': {}"
+              .format(os.path.basename(from_path),
+                      os.path.dirname(from_path),
+                      to_path,
+                      err))
         return False
     else:
         return True
@@ -123,13 +121,16 @@ def copy(from_path, to_path):
     "Wrapper around shutil.copy. Returns True/False on success/failure"
     try:
         shutil.copy(from_path, to_path)
-    except shutil.Error, err:
-        print ("Error: Couldn't copy {0} from {1} to {2}: {3}"
+    except shutil.Error as err:
+        print (u"Error: Couldn't copy '{}' from '{}' to '{}': {}"
                .format(os.path.basename(from_path),
-                       os.path.dirname(from_path), to_path, err))
+                       os.path.dirname(from_path),
+                       to_path,
+                       err))
         return False
-    except IOError, err:
-        print ("Error: Couldn't copy {0} from {1} to {2}: {3}"
+
+    except IOError as err:
+        print (u"Error: Couldn't copy '{}' from '{}' to '{}': {}"
                .format(os.path.basename(from_path), os.path.dirname(from_path),
                        to_path, err))
         return False
@@ -142,20 +143,23 @@ def send_files(copy_files, expected_names, remote_dir, dolink=False):
     Links instead of copying the files if link is True
     returns the number of files copied/linked
     """
-    action = "Linking" if dolink else "Copying"
-    print "{0} {1} files to {2}".format(action, len(copy_files), remote_dir)
-    action = "Linked" if dolink else "Copied"
+    action = u"Linking" if dolink else u"Copying"
+    print(u"{} {} files to '{}'".format(action, len(copy_files), remote_dir))
+
     copied = 0
+    action = u"Linked" if dolink else u"Copied"
     for i, cfile in enumerate(copy_files):
+
         dest = os.path.join(remote_dir, expected_names[i])
         if os.path.exists(dest):
-            print "Warning: Destination {0} already exists".format(dest)
+            print(u"Warning: Destination {} already exists".format(dest))
             continue
+
         op_result = link(cfile, dest) if dolink else copy(cfile, dest)
         if op_result:
             copied += 1
-            print "{0} {1}/{2}: {3}".format(action, copied,
-                                            len(copy_files), cfile)
+            print(u"{} {}/{}: '{}'".format(action, copied, len(copy_files), cfile))
+
     return copied
 
 
@@ -176,7 +180,7 @@ def sync_dirs(local_files, remote_dir, opts):
         cdsize = 700 * 1024 * 1024  # in bytes
         while total_size > cdsize:
             size, f = weighted_files.pop()
-            print "Ommiting {0} to fit CD size".format(f)
+            print(u"Ommiting '{}' to fit CD size".format(f))
             local_files.remove(f)
             total_size -= size
 
@@ -198,16 +202,16 @@ def sync_dirs(local_files, remote_dir, opts):
 
     # Warn about already present files which are being skipped
     if not opts.force:
-        for f in set(remote_names).intersection(set(expected_names)):
-            print ("Skipping {0} which is already in {1}"
-                   .format(os.path.basename(f), remote_dir))
+        for path in set(remote_names).intersection(set(expected_names)):
+            print(u"Skipping '{}' which is already in '{}'"
+                  .format(os.path.basename(path), remote_dir))
 
     # Copy/Link files to remote directory
     copied = send_files(copy_files, expected_names, remote_dir, opts.link)
-    action = "Linking" if opts.link else "Copying"
+    action = u"Linking" if opts.link else u"Copying"
 
-    print ("{0} complete: {1} files copied, {2} files removed"
-           .format(action, copied, deleted))
+    print(u"{} complete: {} files copied, {} files removed"
+          .format(action, copied, deleted))
 
 
 def main():
@@ -216,20 +220,20 @@ def main():
     remote_dir = args[1]
 
     if options.nocreate and not os.path.exists(remote_dir):
-        print "Error: {0} doesn't exists.".format(remote_dir)
+        print(u"Error: {} doesn't exists.".format(remote_dir))
         exit()
 
     if not options.nocreate and not os.path.exists(remote_dir):
         try:
             os.mkdir(remote_dir)
         except OSError:
-            print ("Error: {0} doesn't exists and couldn't be created."
-                   .format(remote_dir))
+            print(u"Error: {} doesn't exists and couldn't be created."
+                  .format(remote_dir))
             exit()
 
     if not os.path.isdir(remote_dir):
-        print ("Error: {0} doesn't exists or is not a directory."
-               .format(remote_dir))
+        print(u"Error: {} doesn't exists or is not a directory."
+              .format(remote_dir))
         exit()
 
     playlist = get_playlist(pl_path, options.format)
@@ -298,8 +302,8 @@ if __name__ == "__main__":
         options.shuffle = True
 
     if not os.path.isfile(args[0]):
-        print ("Error: playlist doesn't exist or isn't a file: {0}. Exiting."
-               .format(args[0]))
+        print("Error: playlist doesn't exist or isn't a file: {}. Exiting."
+              .format(args[0]))
         exit(1)
 
     main()
