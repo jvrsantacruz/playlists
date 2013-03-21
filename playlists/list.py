@@ -155,7 +155,10 @@ def send_files(copy_files, expected_names, remote_dir, dolink=False, force=False
         op_result = link(cfile, dest) if dolink else copy(cfile, dest)
         if op_result:
             copied += 1
-            print(u"{} {}/{}: '{}'".format(action, copied, len(copy_files), cfile))
+            print(u"{} {}/{}: '{}' as '{}'".format(
+                action, copied, len(copy_files),
+                os.path.basename(cfile), os.path.basename(dest)
+            ))
 
     return copied
 
@@ -240,9 +243,9 @@ def main(options, args, parser):
 
 def check_arguments(options, args, parser):
     # Check arguments
-    errors = (("Error: Missing playlist and directory paths."),
-              ("Error: Missing directory paths."),
-              ("Error: Too many arguments."))
+    errors = ((u"Error: Missing playlist and directory paths."),
+              (u"Error: Missing directory paths."),
+              (u"Error: Too many arguments."))
 
     if len(args) != 2:
         print(errors[len(args) if len(args) < 3 else 2] + u'\n')
@@ -254,7 +257,7 @@ def check_arguments(options, args, parser):
         options.shuffle = True
 
     if not os.path.isfile(args[0]):
-        print("Error: playlist doesn't exist or isn't a file: {}. Exiting."
+        print(u"Error: playlist doesn't exist or isn't a file: '{}'. Exiting."
               .format(args[0]))
         exit(1)
 
@@ -278,12 +281,13 @@ def parse_arguments():
 
     parser.add_option("-c", "--nocreate", dest="nocreate",
                       action="store_true", default=False,
-                      help="Doesn't create remote directory if doesn't exists")
+                      help="Doesn't create remote directory if doesn't exists"
+                      " already")
 
     parser.add_option("-s", "--shuffle", dest="shuffle",
                       action="store_true", default=False,
                       help="Process files in a random order. Useful with"
-                      "--numbered.")
+                      " --numbered.")
 
     parser.add_option("-n", "--numbered", dest="numbered",
                       action="store_true", default=False,
