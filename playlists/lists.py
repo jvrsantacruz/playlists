@@ -70,6 +70,9 @@ class M3u(object):
     def __init__(self, source):
         self.source = source
 
+    def __iter__(self):
+        return self.parse(self.source)
+
     @staticmethod
     def parse(source):
         """Yields title, absolute_path for every item on the playlist.
