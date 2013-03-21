@@ -74,7 +74,7 @@ class Xspf(object):
                 elif element.tag.endswith('location'):
                     location = element.text[7:]
 
-                if element.tag.endswith('track'):
+                elif element.tag.endswith('track'):
                     yield title, location
 
                     # Clean after reading a track
