@@ -31,9 +31,13 @@ def detect_format(source):
 
 def get_playlist(path, format_name=None):
     """Returns a Playlist object of the given format.
-    "if pformat is not specified or None, format will be auto detected
+    if format_name is not specified or None, format will be auto detected
     """
-    source = open(path, 'r')
+    try:
+        source = open(path, 'r')
+    except IOError as err:
+        print(u"Error: Couldn't open playlist from '{}': {}".format(path, err))
+        exit(1)
 
     if format_name is None:
         format_name = detect_format(source)
