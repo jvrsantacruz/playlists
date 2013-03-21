@@ -24,7 +24,7 @@ def detect_format(source):
     header = source.readline(200)
     source.seek(0)  # reset source
 
-    for name, cls in FORMATS:
+    for name, cls in FORMATS.items():
         if cls.ns in header:
             return name
 
@@ -42,7 +42,7 @@ def get_playlist(path, format_name=None):
         print(u"Error: Couldn't autodetect format for playlist.")
         exit(1)
 
-    if format_name not in FORMATS.keys():
+    if format_name not in FORMATS:
         print(u"Error: Unkown '{}' playlist format.".format(format_name))
         exit(1)
 
