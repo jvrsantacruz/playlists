@@ -168,11 +168,10 @@ def sync_dirs(local_files, remote_dir, opts):
     """
     if opts.cd:
         # Maximize de number of files in the CD
-        # omit files until the result fit's into a CD big ones first
-        weighted_files = map(lambda f: (os.path.getsize(f) * 5, f), local_files)
-        weighted_files.sort(key=lambda f: f[0], reverse=True)  # biggers first
-        adder = lambda x, y: x[0] if isinstance(x, tuple) else x + y[0]
-        total_size = reduce(adder, weighted_files)
+        # remove files from the playlist until it fits into a cd
+        weighted_files = [(os.path.getsize(f) * 5, f) for f in local_files]
+        weighted_files.sort(key=lambda item: item[0])  # small first
+        total_size = sum(size for size, f in weighted_files)
 
         cdsize = 700 * 1024 * 1024  # in bytes
         while total_size > cdsize:
