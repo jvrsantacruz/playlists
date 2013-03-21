@@ -136,7 +136,7 @@ def copy(from_path, to_path):
     return True
 
 
-def send_files(copy_files, expected_names, remote_dir, dolink=False):
+def send_files(copy_files, expected_names, remote_dir, dolink=False, force=False):
     """Copies/Links files to remote dir as expected_name
     Links instead of copying the files if link is True
     returns the number of files copied/linked
@@ -149,8 +149,7 @@ def send_files(copy_files, expected_names, remote_dir, dolink=False):
     for i, cfile in enumerate(copy_files):
 
         dest = os.path.join(remote_dir, expected_names[i])
-        if os.path.exists(dest):
-            print(u"Warning: Destination {} already exists".format(dest))
+        if not force and os.path.exists(dest):
             continue
 
         op_result = link(cfile, dest) if dolink else copy(cfile, dest)
@@ -187,7 +186,7 @@ def sync_dirs(local_files, remote_dir, opts):
         random.shuffle(local_files)
 
     local_names = [os.path.basename(f) for f in local_files]  # local names
-    expected_names = local_names if opts.numbered else get_expected_names(local_names)  # what sould be in remote
+    expected_names = local_names if not opts.numbered else get_expected_names(local_names)  # what sould be in remote
     remote_names = os.listdir(remote_dir)  # what is in remote
 
     # Remove undesired files
@@ -205,7 +204,7 @@ def sync_dirs(local_files, remote_dir, opts):
                   .format(os.path.basename(path), remote_dir))
 
     # Copy/Link files to remote directory
-    copied = send_files(copy_files, expected_names, remote_dir, opts.link)
+    copied = send_files(copy_files, expected_names, remote_dir, opts.link, opts.force)
     action = u"Linking" if opts.link else u"Copying"
 
     print(u"{} complete: {} files copied, {} files removed"
