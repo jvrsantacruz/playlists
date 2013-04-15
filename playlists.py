@@ -3,6 +3,62 @@
 from xml.etree.ElementTree import iterparse, ParseError
 
 
+class Asx(object):
+    "Iterate over a Asx playlist file."
+
+    ns = '<asx version="3.0">'
+
+    def __init__(self, source):
+        self.source = source
+
+    def __iter__(self):
+        return self.parse(self.source)
+
+    @staticmethod
+    def parse(source):
+        """Yields title, absolute_path for every item on the list
+
+        asx documents have the following structure:
+
+        <asx version="3.0">
+            <entry>
+                <title>Braintrust</title>
+                <ref href="file:///music/Hot_Snakes-Thunder_Down_Under-2006-SDR/01-hot_snakes-braintrust.mp3"/>
+                <author>Hot Snakes</author>
+            </entry>
+        </asx>
+        """
+        document = iterparse(source, events=('start', 'end'))
+
+        def get_root(document):
+            for event, element in document:
+                return element
+
+        try:
+            title, location = None, None
+            root = get_root(document)
+            end_events = (el for event, el in document if event == 'end')
+
+            for element in end_events:
+                if element.tag.endswith('title'):
+                    title = element.text
+
+                elif element.tag.endswith('ref'):
+                    location = element.get('href')
+                    if location is not None:
+                        location = location[7:]
+
+                elif element.tag.endswith('entry'):
+                    yield title, location
+
+                    # Clean after reading a track
+                    title, location = None, None
+                    root.clear()
+
+        except ParseError as error:
+            raise AsxError(error)
+
+
 class Xspf(object):
     "Iterate over a XSPF playlist file."
 
@@ -110,6 +166,10 @@ class PlaylistError(Exception):
 
 
 class XspfError(Exception):
+    pass
+
+
+class AsxError(Exception):
     pass
 
 
