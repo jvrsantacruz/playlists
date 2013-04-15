@@ -11,7 +11,7 @@ import shutil
 import random
 from optparse import OptionParser
 
-from lists import Xspf, M3u
+from playlists import Xspf, M3u
 
 
 FORMATS = {"m3u": M3u, "xspf": Xspf}

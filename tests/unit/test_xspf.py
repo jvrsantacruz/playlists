@@ -8,7 +8,7 @@ except ImportError:
 from hamcrest import *
 from matchers import *
 
-from playlists.lists import Xspf, XspfError
+from playlists import Xspf, XspfError
 
 does_not = is_not
 

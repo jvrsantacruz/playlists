@@ -8,7 +8,7 @@ except ImportError:
 from hamcrest import *
 from matchers import *
 
-from playlists.lists import M3u, M3uError
+from playlists import M3u, M3uError
 
 
 EMPTY_PL = u"#EXTM3U"
